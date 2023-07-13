@@ -12,7 +12,7 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-const refreshExp = time.Minute * 2
+const refreshExp = time.Hour * 24
 const refreshNBF = time.Second * 30
 const accessExp = time.Second * 60
 

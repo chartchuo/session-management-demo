@@ -2,6 +2,7 @@ package service
 
 import (
 	"net/http"
+	"time"
 
 	"backend/model"
 
@@ -18,8 +19,9 @@ func HelloHandler(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"user_id":    u.UserID,
-		"first_name": u.FirstName,
-		"text":       "Hello World.",
+		"user_id":      u.UserID,
+		"first_name":   u.FirstName,
+		"text":         "Hello World.",
+		"current_time": time.Now().String(),
 	})
 }
