@@ -7,6 +7,8 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.0.0
 )
 
+require github.com/ucarion/urlpath v0.0.0-20200424170820-7ccc79b76bbb // indirect
+
 require (
 	github.com/bytedance/sonic v1.9.2 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
