@@ -42,6 +42,11 @@ func findRole(role string, roles []string) bool {
 // return true when authorize
 func authorize(u *model.User, method string, path string) (allow bool, err error) {
 	for i, a := range authTablePaths {
+		//verify method
+		if method != authTable[i].method {
+			continue
+		}
+
 		match, ok := a.Match(path)
 		if !ok {
 			continue
