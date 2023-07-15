@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import 'api.dart';
 
@@ -10,16 +13,22 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String msg = '';
+  var now = StreamController<DateTime>();
+  String userHelloMsg = '';
+  var api = Api();
 
-  void _incrementCounter() async {
-    var api = Api();
-    if (!api.isLogin) {
-      await api.login('admin', 'admin');
-    }
+  void _userHello() async {
     var data = await api.userHello();
     setState(() {
-      msg = data;
+      userHelloMsg = data;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    Timer.periodic(const Duration(seconds: 1), (timer) {
+      now.add(DateTime.now());
     });
   }
 
@@ -34,21 +43,32 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+            Text('next refresh time: ${Api().session.atExpDate}'),
+            StreamBuilder(
+                stream: now.stream,
+                builder: (c, sh) {
+                  if (sh.hasData) {
+                    return Text(
+                        'time to refresh: ${sh.data?.difference(api.session.atExpDate).inSeconds}');
+                  }
+                  return const Text('');
+                }),
+            ElevatedButton(
+              onPressed: _userHello,
+              child: const Text('Get user hello'),
             ),
             Text(
-              msg,
+              userHelloMsg,
               // style: Theme.of(context).textTheme.headlineMedium,
             ),
-            Text('next refresh time: ${Api().session.atExpDate}'),
+            ElevatedButton(
+                onPressed: () {
+                  Api().logout();
+                  context.go('/login');
+                },
+                child: const Text('Sign off'))
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }

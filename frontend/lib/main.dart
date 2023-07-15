@@ -14,7 +14,7 @@ void main() async {
 }
 
 final GoRouter _router = GoRouter(
-  initialLocation: Api().isLogin ? '/' : 'login',
+  initialLocation: Api().isLogin ? '/' : '/login',
   routes: <RouteBase>[
     GoRoute(
       path: '/',

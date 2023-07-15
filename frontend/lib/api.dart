@@ -9,8 +9,8 @@ class Api {
   var session = Session();
   var baseOptions = BaseOptions(
     baseUrl: 'http://10.0.2.2:8000',
-    connectTimeout: const Duration(seconds: 60),
-    receiveTimeout: const Duration(seconds: 10),
+    connectTimeout: const Duration(seconds: 5),
+    receiveTimeout: const Duration(seconds: 5),
   );
   bool get isLogin => session.isLogin;
   set isLogin(bool b) => session.isLogin = b;
@@ -28,18 +28,23 @@ class Api {
     ));
   }
 
-  Future login(String username, String password) async {
-    var response = await dio.post(
-      '/login',
-      data: {
-        'username': username,
-        'password': password,
-      },
-    );
-    if (response.statusCode != HttpStatus.ok) {
-      throw response.data;
+  Future<bool> login(String username, String password) async {
+    try {
+      var response = await dio.post(
+        '/login',
+        data: {
+          'username': username,
+          'password': password,
+        },
+      );
+      if (response.statusCode != HttpStatus.ok) {
+        return false;
+      }
+      session.refreshTokenRotate(Tokens.fromJson(response.data));
+      return true;
+    } catch (e) {
+      return false;
     }
-    session.refreshTokenRotate(Tokens.fromJson(response.data));
   }
 
   tokenInterceptor(
@@ -72,8 +77,7 @@ class Api {
         handler.reject(DioException(requestOptions: options));
         return;
       }
-      session.tokens = Tokens.fromJson(response.data);
-      session.save();
+      session.refreshTokenRotate(Tokens.fromJson(response.data));
     }
 
     //normal case

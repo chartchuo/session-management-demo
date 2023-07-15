@@ -52,5 +52,6 @@ class Session {
   void clearSession() {
     isLogin = false;
     tokens = tokens = Tokens('', '');
+    save();
   }
 }
