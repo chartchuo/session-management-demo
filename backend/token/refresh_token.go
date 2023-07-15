@@ -12,10 +12,6 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-const refreshExp = time.Hour * 24
-const refreshNBF = time.Second * 30
-const accessExp = time.Second * 60
-
 type RefreshClaims struct {
 	TokenID TokenID `json:"jti"`
 	model.User

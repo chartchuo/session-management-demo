@@ -21,6 +21,10 @@ func TestAuthorizeUser(t *testing.T) {
 	if err == nil {
 		t.Errorf("err:")
 	}
+	_, err = authorize(u, "GET", "/admin/hello")
+	if err == nil {
+		t.Errorf("err:")
+	}
 	_, err = authorize(u, "GET", "/admin")
 	if err == nil {
 		t.Errorf("err:")

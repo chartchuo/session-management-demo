@@ -17,7 +17,7 @@ func authMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		if ok, err := authorize(&ac.User, c.Request.Method, c.Request.URL.Path); ok {
+		if _, err := authorize(&ac.User, c.Request.Method, c.Request.URL.Path); err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"msg": "unauthorized to access: " + err.Error(),
 			})

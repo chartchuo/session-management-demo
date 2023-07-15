@@ -19,6 +19,7 @@ func HelloHandler(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
+		"role":         u.Role,
 		"user_id":      u.UserID,
 		"first_name":   u.FirstName,
 		"text":         "Hello World.",
