@@ -2,19 +2,18 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:frontend/model.dart';
-import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:frontend/session.dart';
 
 class Api {
   late Dio dio;
+  var session = Session();
   var baseOptions = BaseOptions(
     baseUrl: 'http://10.0.2.2:8000',
     connectTimeout: const Duration(seconds: 60),
     receiveTimeout: const Duration(seconds: 10),
   );
-  Tokens tokens = Tokens('', '');
-  DateTime sessionExp = DateTime.now();
-  DateTime refreshTime = DateTime.now();
-  bool isLogin = false;
+  bool get isLogin => session.isLogin;
+  set isLogin(bool b) => session.isLogin = b;
 
   // singleton pattern
   static final Api _api = Api._constructor();
@@ -27,7 +26,6 @@ class Api {
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: tokenInterceptor,
     ));
-    tokens = Tokens('', '');
   }
 
   Future login(String username, String password) async {
@@ -41,9 +39,7 @@ class Api {
     if (response.statusCode != HttpStatus.ok) {
       throw response.data;
     }
-    tokens = Tokens.fromJson(response.data);
-    _updateExpire();
-    isLogin = true;
+    session.refreshTokenRotate(Tokens.fromJson(response.data));
   }
 
   tokenInterceptor(
@@ -53,22 +49,22 @@ class Api {
       handler.next(options);
       return;
     }
-    var now = DateTime.now();
+
     // session timeout
-    if (sessionExp.isBefore(now)) {
+    if (session.rtExp()) {
       handler.reject(DioException(requestOptions: options));
       isLogin = false;
       return;
     }
 
     // access timeout
-    if (refreshTime.isBefore(now)) {
+    if (session.atExp()) {
       //special dio instance for refresh new token
       var response = await Dio(baseOptions).get(
         '/refresh_token',
         options: Options(
           headers: {
-            'Authorization': 'Bearer ${tokens.refreshToken}',
+            'Authorization': 'Bearer ${session.tokens.refreshToken}',
           },
         ),
       );
@@ -76,27 +72,20 @@ class Api {
         handler.reject(DioException(requestOptions: options));
         return;
       }
-      tokens = Tokens.fromJson(response.data);
-      _updateExpire();
+      session.tokens = Tokens.fromJson(response.data);
+      session.save();
     }
 
     //normal case
     options.headers.addAll({
-      'Authorization': 'Bearer ${tokens.accessToken}',
+      'Authorization': 'Bearer ${session.tokens.accessToken}',
     });
 
     handler.next(options);
   }
 
   logout() {
-    isLogin = false;
-    tokens = tokens = Tokens('', '');
-  }
-
-  void _updateExpire() {
-    sessionExp = JwtDecoder.getExpirationDate(tokens.refreshToken);
-    refreshTime = JwtDecoder.getExpirationDate(tokens.accessToken)
-        .subtract(const Duration(seconds: 10));
+    session.clearSession();
   }
 
   Future<String> userHello() async {

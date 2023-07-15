@@ -2,6 +2,9 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'model.g.dart';
 
+// cmd
+// dart run build_runner build --delete-conflicting-outputs
+
 @JsonSerializable()
 class Tokens {
   @JsonKey(name: 'refresh_token')
