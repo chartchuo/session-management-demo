@@ -16,7 +16,7 @@ func main() {
 	if port == "" {
 		port = "8000"
 	}
-
+	r.Use(logMiddleware())
 	r.POST("/login", service.LoginHandler)
 
 	r.GET("/refresh_token", service.RefreshTokenHandler)
