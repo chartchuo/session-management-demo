@@ -20,3 +20,16 @@ func TestID(t *testing.T) {
 	}
 
 }
+func TestRotate(t *testing.T) {
+	t1 := NewTokenID()
+	id := t1.NUID
+	counter := t1.Counter
+	t1.Rotate()
+
+	if id != t1.NUID {
+		t.Errorf("mismatch ")
+	}
+	if counter != t1.Counter-1 {
+		t.Errorf("mismatch ")
+	}
+}
