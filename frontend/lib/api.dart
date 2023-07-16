@@ -92,13 +92,16 @@ class Api {
     session.clearSession();
   }
 
-  Future<String> userHello() async {
-    var response = await dio.get(
-      '/user/test/hello',
-    );
-    if (response.statusCode != HttpStatus.ok) {
-      throw response.data;
+  Future<Map<String, dynamic>> get(String path) async {
+    Response response;
+    try {
+      response = await dio.get(path);
+      if (response.statusCode != HttpStatus.ok) {
+        return response.data;
+      }
+    } catch (e) {
+      return {"error": e.toString()};
     }
-    return Future.value(response.data.toString());
+    return response.data;
   }
 }

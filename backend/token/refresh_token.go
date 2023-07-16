@@ -30,6 +30,7 @@ func init() {
 // Issue at = Now()
 func NewRefreshClaims(u *model.User) (rc *RefreshClaims) {
 	rc = &RefreshClaims{User: *u, TokenID: *NewTokenID()}
+	rc.IssuedAt = &jwt.NumericDate{Time: time.Now().Add(refreshExp)}
 	return rc.UpdateTime()
 }
 
@@ -57,10 +58,9 @@ func NewRefreshClaimsFromContext(c *gin.Context) (*RefreshClaims, error) {
 
 // Update iat,exp,nbf from current time
 func (rc *RefreshClaims) UpdateTime() *RefreshClaims {
-	iat := time.Now()
-	rc.IssuedAt = &jwt.NumericDate{Time: iat}
-	rc.ExpiresAt = &jwt.NumericDate{Time: iat.Add(refreshExp)}
-	rc.NotBefore = &jwt.NumericDate{Time: iat.Add(refreshNBF)}
+	now := time.Now()
+	rc.ExpiresAt = &jwt.NumericDate{Time: now.Add(refreshExp)}
+	rc.NotBefore = &jwt.NumericDate{Time: now.Add(refreshNBF)}
 	return rc
 }
 
@@ -94,9 +94,9 @@ func (rc *RefreshClaims) Rotate() (refreshTokenString string, accessTokenString 
 	}
 
 	ac := NewAccessClaims(&rc.User)
-	iat := rc.IssuedAt
-	ac.IssuedAt = iat
-	ac.ExpiresAt = &jwt.NumericDate{Time: iat.Add(accessExp)}
+	now := time.Now()
+	ac.IssuedAt = &jwt.NumericDate{Time: now}
+	ac.ExpiresAt = &jwt.NumericDate{Time: now.Add(accessExp)}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, ac)
 	accessTokenString, err = accessToken.SignedString([]byte(common.AccessSecret))
 	if err != nil {

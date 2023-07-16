@@ -31,6 +31,7 @@ class _LoginPageState extends State<LoginPage> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          const Text('try username/password test/test or admin/admin'),
           TextField(controller: usernameCtrl),
           TextField(controller: passwordCtrl),
           ElevatedButton(onPressed: _login, child: const Text('Sign on')),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -14,14 +15,12 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   var now = StreamController<DateTime>();
-  String userHelloMsg = '';
   var api = Api();
 
-  void _userHello() async {
-    var data = await api.userHello();
-    setState(() {
-      userHelloMsg = data;
-    });
+  void _get(String path) async {
+    var data = await api.get(path);
+    var text = const JsonEncoder.withIndent('  ').convert(data);
+    await _showDialog(text);
   }
 
   @override
@@ -54,12 +53,16 @@ class _MyHomePageState extends State<MyHomePage> {
                   return const Text('');
                 }),
             ElevatedButton(
-              onPressed: _userHello,
-              child: const Text('Get user hello'),
+              onPressed: () => _get('/user/test/hello'),
+              child: const Text('Get /user/test/hello'),
             ),
-            Text(
-              userHelloMsg,
-              // style: Theme.of(context).textTheme.headlineMedium,
+            ElevatedButton(
+              onPressed: () => _get('/user/abc/hello'),
+              child: const Text('Get /user/abc/hello'),
+            ),
+            ElevatedButton(
+              onPressed: () => _get('/admin/hello'),
+              child: const Text('Get /admin/hello'),
             ),
             ElevatedButton(
                 onPressed: () {
@@ -70,6 +73,33 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _showDialog(String content) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Response'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text(content),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Ok'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }

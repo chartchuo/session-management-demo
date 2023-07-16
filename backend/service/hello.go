@@ -23,6 +23,6 @@ func HelloHandler(c *gin.Context) {
 		"user_id":      u.UserID,
 		"first_name":   u.FirstName,
 		"text":         "Hello World.",
-		"current_time": time.Now().String(),
+		"current_time": time.Now(),
 	})
 }
