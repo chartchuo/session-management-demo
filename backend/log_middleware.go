@@ -21,7 +21,7 @@ func logMiddleware() gin.HandlerFunc {
 		blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
 		c.Writer = blw
 		c.Next()
-		fmt.Println("Response body: " + blw.body.String())
+		fmt.Println("Response body: " + blw.body.String()) // DO NOT use in production. se below code instead.
 		// statusCode := c.Writer.Status()
 		// if statusCode >= 400 {
 		// 	//ok this is an request with error, let's make a record for it

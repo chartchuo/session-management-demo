@@ -6,6 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// DO NOT use in production
+// Store secure key in vault instead
 const RefreshSecret = "refresh secret"
 const AccessSecret = "access secret"
 

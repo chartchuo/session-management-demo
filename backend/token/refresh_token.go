@@ -18,6 +18,8 @@ type RefreshClaims struct {
 	jwt.RegisteredClaims
 }
 
+// DO NOT use in production
+// Store data in databas or external cache instead of inmemory
 var counterCache *cache.Cache
 var revokedCache *cache.Cache
 
