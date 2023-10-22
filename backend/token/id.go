@@ -45,7 +45,7 @@ func (t *TokenID) FromString(s string) error {
 	return nil
 }
 
-func (t *TokenID) Rotate() *TokenID {
+func (t *TokenID) Increment() *TokenID {
 	t.Counter++
 	return t
 }

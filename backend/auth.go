@@ -13,6 +13,7 @@ type auth struct {
 	roles  []string
 }
 
+// store in database in production
 var authTable []auth = []auth{
 	//require userid matching
 	{"GET", "/user/:userid/*", []string{"user"}},

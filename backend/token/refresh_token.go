@@ -99,8 +99,8 @@ func (rc *RefreshClaims) Rotate() (err error) {
 		return fmt.Errorf("invalid token counter: %s", rc.TokenID.String())
 	}
 
-	// rotate token
-	rc.TokenID.Rotate()
+	// Increment token id
+	rc.TokenID.Increment()
 	// add to counter cache
 	counterCache.Set(rc.TokenID.NUID, rc.TokenID.Counter, cache.DefaultExpiration)
 
