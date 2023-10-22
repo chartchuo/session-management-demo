@@ -89,8 +89,26 @@ class Api {
     handler.next(options);
   }
 
-  logout() {
+  Future<bool> logout() async {
+    var refreshToken = session.tokens.refreshToken;
     session.clearSession();
+
+    try {
+      var response = await dio.get(
+        '/logout',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $refreshToken',
+          },
+        ),
+      );
+      if (response.statusCode != HttpStatus.ok) {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+    return true;
   }
 
   Future<Map<String, dynamic>> get(String path) async {

@@ -47,7 +47,7 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 	rc := token.NewRefreshClaims(u)
-	refreshTokenString, accessTokenString, err := rc.Rotate()
+	refreshTokenString, accessTokenString, err := rc.JwtString()
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

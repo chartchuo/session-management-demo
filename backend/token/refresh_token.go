@@ -33,19 +33,20 @@ func init() {
 func NewRefreshClaims(u *model.User) (rc *RefreshClaims) {
 	rc = &RefreshClaims{User: *u, TokenID: *NewTokenID()}
 	rc.IssuedAt = &jwt.NumericDate{Time: now().Add(refreshExp)}
+	counterCache.Set(rc.TokenID.NUID, rc.TokenID.Counter, cache.DefaultExpiration)
 	return rc.UpdateTime()
 }
 
 // Get refresh claims from context.
 // Return error if not valid.
-func NewRefreshClaimsFromContext(c *gin.Context) (*RefreshClaims, error) {
+func NewRefreshClaimsFromContext(c *gin.Context, option ...jwt.ParserOption) (*RefreshClaims, error) {
 	tokenString := common.ExtractJWT(c)
 	token, err := jwt.ParseWithClaims(tokenString, &RefreshClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(common.RefreshSecret), nil
-	})
+	}, option...)
 
 	if err != nil {
 		return nil, fmt.Errorf("invalid refresh token: %v", err)
@@ -98,6 +99,12 @@ func (rc *RefreshClaims) Rotate() (refreshTokenString string, accessTokenString 
 	counterCache.Set(rc.TokenID.NUID, rc.TokenID.Counter, cache.DefaultExpiration)
 
 	rc.UpdateTime()
+
+	return rc.JwtString()
+}
+
+func (rc *RefreshClaims) JwtString() (refreshTokenString string, accessTokenString string, err error) {
+
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, rc)
 	refreshTokenString, err = refreshToken.SignedString([]byte(common.RefreshSecret))
 	if err != nil {
@@ -105,8 +112,8 @@ func (rc *RefreshClaims) Rotate() (refreshTokenString string, accessTokenString 
 	}
 
 	ac := NewAccessClaims(&rc.User)
-	ac.IssuedAt = &jwt.NumericDate{Time: now}
-	ac.ExpiresAt = &jwt.NumericDate{Time: now.Add(accessExp)}
+	ac.IssuedAt = &jwt.NumericDate{Time: rc.IssuedAt.Time}
+	ac.ExpiresAt = &jwt.NumericDate{Time: rc.IssuedAt.Time.Add(accessExp)}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, ac)
 	accessTokenString, err = accessToken.SignedString([]byte(common.AccessSecret))
 	if err != nil {

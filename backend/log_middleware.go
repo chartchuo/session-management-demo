@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"fmt"
+	"log"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,15 +18,16 @@ func (w bodyLogWriter) Write(b []byte) (int, error) {
 }
 func logMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		log.Printf("url: %v", c.Request.URL)
 		blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
 		c.Writer = blw
 		c.Next()
-		fmt.Println("Response body: " + blw.body.String()) // DO NOT use in production. se below code instead.
+		log.Println("Response body: " + blw.body.String()) // DO NOT use in production. se below code instead.
 		// statusCode := c.Writer.Status()
 		// if statusCode >= 400 {
 		// 	//ok this is an request with error, let's make a record for it
 		// 	// now print body (or log in your preferred way)
-		// 	fmt.Println("Response body: " + blw.body.String())
+		// 	log.Println("Response body: " + blw.body.String())
 		// }
 	}
 }

@@ -9,15 +9,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
-	port := os.Getenv("PORT")
+func setupRouter() *gin.Engine {
 	r := gin.Default()
 
-	if port == "" {
-		port = "8000"
-	}
 	r.Use(logMiddleware())
 	r.POST("/login", service.LoginHandler)
+	r.GET("/logout", service.LogoutHandler)
 
 	r.GET("/refresh_token", service.RefreshTokenHandler)
 
@@ -28,7 +25,16 @@ func main() {
 	adminRouter := r.Group("/admin")
 	adminRouter.Use(authMiddleware())
 	adminRouter.GET("/hello", service.HelloHandler)
+	return r
+}
 
+func main() {
+	r := setupRouter()
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8000"
+	}
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatal(err)
 	}
