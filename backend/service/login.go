@@ -24,6 +24,9 @@ func LoginHandler(c *gin.Context) {
 	userID := loginVals.Username
 	password := loginVals.Password
 	var u *model.User
+
+	// DONT use in production
+	// store data in database instead
 	if userID == "admin" && password == "admin" {
 		u = &model.User{
 			Role:      "admin",
@@ -47,8 +50,16 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 	rc := token.NewRefreshClaims(u)
-	refreshTokenString, accessTokenString, err := rc.JwtString()
+	ac := token.NewAccessClaims(u)
+	refreshTokenString, err := rc.JwtString()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": err.Error(),
+		})
+		return
+	}
 
+	accessTokenString, err := ac.JwtString()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"msg": err.Error(),

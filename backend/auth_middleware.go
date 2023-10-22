@@ -9,7 +9,7 @@ import (
 
 func authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ac, err := token.NewAccessClaimsFromContext(c)
+		ac, err := token.ExtractAccessClaims(c)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"msg": err.Error(),

@@ -16,12 +16,15 @@ type AccessClaims struct {
 
 func NewAccessClaims(u *model.User) (ac *AccessClaims) {
 	ac = &AccessClaims{User: *u}
+	n := now()
+	ac.IssuedAt = jwt.NewNumericDate(n)
+	ac.ExpiresAt = jwt.NewNumericDate(n.Add(accessExp))
 	return
 }
 
 // Verify access token.
 // Return error if not found or invalid.
-func NewAccessClaimsFromContext(c *gin.Context) (*AccessClaims, error) {
+func ExtractAccessClaims(c *gin.Context) (*AccessClaims, error) {
 	tokenString := common.ExtractJWT(c)
 	token, err := jwt.ParseWithClaims(tokenString, &AccessClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -38,5 +41,24 @@ func NewAccessClaimsFromContext(c *gin.Context) (*AccessClaims, error) {
 		return nil, fmt.Errorf("invalid access token: %v", "invlid claims")
 	}
 
+	if ac.IsExpired() {
+		return nil, fmt.Errorf("invalid access token: %v", "expired")
+	}
+
 	return ac, nil
+}
+
+func (ac *AccessClaims) IsExpired() bool {
+	now := now()
+	exp := ac.ExpiresAt.Time
+	return now.After(exp)
+}
+
+func (ac *AccessClaims) JwtString() (accessTokenString string, err error) {
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, ac)
+	accessTokenString, err = accessToken.SignedString([]byte(common.AccessSecret))
+	if err != nil {
+		return "", fmt.Errorf("error access token SignedString")
+	}
+	return
 }

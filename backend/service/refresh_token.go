@@ -9,7 +9,7 @@ import (
 
 func RefreshTokenHandler(c *gin.Context) {
 
-	rc, err := token.NewRefreshClaimsFromContext(c)
+	rc, err := token.ExtractRefreshClaims(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"msg": err.Error(),
@@ -17,7 +17,23 @@ func RefreshTokenHandler(c *gin.Context) {
 		return
 	}
 
-	refreshTokenString, accessTokenString, err := rc.Rotate()
+	err = rc.Rotate()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": err.Error(),
+		})
+		return
+	}
+	refreshTokenString, err := rc.JwtString()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"msg": err.Error(),
+		})
+		return
+	}
+
+	ac := token.NewAccessClaims(&rc.User)
+	accessTokenString, err := ac.JwtString()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"msg": err.Error(),

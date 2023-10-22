@@ -10,7 +10,7 @@ import (
 
 func LogoutHandler(c *gin.Context) {
 
-	rc, err := token.NewRefreshClaimsFromContext(c, jwt.WithoutClaimsValidation())
+	rc, err := token.ExtractRefreshClaims(c, jwt.WithoutClaimsValidation())
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"msg": err.Error(),

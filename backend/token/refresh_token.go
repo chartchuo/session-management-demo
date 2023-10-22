@@ -32,14 +32,16 @@ func init() {
 // Issue at = Now()
 func NewRefreshClaims(u *model.User) (rc *RefreshClaims) {
 	rc = &RefreshClaims{User: *u, TokenID: *NewTokenID()}
-	rc.IssuedAt = &jwt.NumericDate{Time: now().Add(refreshExp)}
+	n := now()
+	rc.IssuedAt = &jwt.NumericDate{Time: n}
+	rc.ExpiresAt = &jwt.NumericDate{Time: n.Add(refreshExp)}
 	counterCache.Set(rc.TokenID.NUID, rc.TokenID.Counter, cache.DefaultExpiration)
 	return rc.UpdateTime()
 }
 
 // Get refresh claims from context.
 // Return error if not valid.
-func NewRefreshClaimsFromContext(c *gin.Context, option ...jwt.ParserOption) (*RefreshClaims, error) {
+func ExtractRefreshClaims(c *gin.Context, option ...jwt.ParserOption) (*RefreshClaims, error) {
 	tokenString := common.ExtractJWT(c)
 	token, err := jwt.ParseWithClaims(tokenString, &RefreshClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -56,6 +58,10 @@ func NewRefreshClaimsFromContext(c *gin.Context, option ...jwt.ParserOption) (*R
 		return nil, fmt.Errorf("invalid refresh token: %v", "invlid claims")
 	}
 
+	if rc.IsExpired() {
+		return nil, fmt.Errorf("invalid refresh token: %v", "expired")
+	}
+
 	return rc, nil
 }
 
@@ -68,21 +74,21 @@ func (rc *RefreshClaims) UpdateTime() *RefreshClaims {
 }
 
 // Generate new token
-func (rc *RefreshClaims) Rotate() (refreshTokenString string, accessTokenString string, err error) {
+func (rc *RefreshClaims) Rotate() (err error) {
 	now := now()
 
 	// check expire
 	if !now.Before(rc.ExpiresAt.Time) {
-		return "", "", fmt.Errorf("token expired: %s", rc.ExpiresAt.Time.String())
+		return fmt.Errorf("token expired: %s", rc.ExpiresAt.Time.String())
 	}
 	// check not before
 	if now.Before(rc.NotBefore.Time) {
-		return "", "", fmt.Errorf("token not before: %s", rc.NotBefore.Time.String())
+		return fmt.Errorf("token not before: %s", rc.NotBefore.Time.String())
 	}
 	// check revoked counter
 	_, found := revokedCache.Get(rc.TokenID.NUID)
 	if found {
-		return "", "", fmt.Errorf("invalid token counter: %s", rc.TokenID.String())
+		return fmt.Errorf("invalid token counter: %s", rc.TokenID.String())
 	}
 
 	// check counter
@@ -90,7 +96,7 @@ func (rc *RefreshClaims) Rotate() (refreshTokenString string, accessTokenString 
 	if found && r.(int) > rc.TokenID.Counter {
 		//revok this rc
 		rc.Revoke()
-		return "", "", fmt.Errorf("invalid token counter: %s", rc.TokenID.String())
+		return fmt.Errorf("invalid token counter: %s", rc.TokenID.String())
 	}
 
 	// rotate token
@@ -100,24 +106,15 @@ func (rc *RefreshClaims) Rotate() (refreshTokenString string, accessTokenString 
 
 	rc.UpdateTime()
 
-	return rc.JwtString()
+	return nil
 }
 
-func (rc *RefreshClaims) JwtString() (refreshTokenString string, accessTokenString string, err error) {
+func (rc *RefreshClaims) JwtString() (refreshTokenString string, err error) {
 
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, rc)
 	refreshTokenString, err = refreshToken.SignedString([]byte(common.RefreshSecret))
 	if err != nil {
-		return
-	}
-
-	ac := NewAccessClaims(&rc.User)
-	ac.IssuedAt = &jwt.NumericDate{Time: rc.IssuedAt.Time}
-	ac.ExpiresAt = &jwt.NumericDate{Time: rc.IssuedAt.Time.Add(accessExp)}
-	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, ac)
-	accessTokenString, err = accessToken.SignedString([]byte(common.AccessSecret))
-	if err != nil {
-		return
+		return "", fmt.Errorf("error refresh token SignedString")
 	}
 	return
 }
@@ -125,4 +122,10 @@ func (rc *RefreshClaims) JwtString() (refreshTokenString string, accessTokenStri
 func (rc *RefreshClaims) Revoke() {
 	// add to revoked cache
 	revokedCache.Set(rc.TokenID.NUID, rc.TokenID.Counter, cache.DefaultExpiration)
+}
+
+func (rc *RefreshClaims) IsExpired() bool {
+	now := now()
+	exp := rc.ExpiresAt.Time
+	return now.After(exp)
 }
