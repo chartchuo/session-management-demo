@@ -19,18 +19,18 @@ type RefreshClaims struct {
 }
 
 var counterCache *cache.Cache
-var invalidCache *cache.Cache
+var revokedCache *cache.Cache
 
 func init() {
 	counterCache = cache.New(refreshExp, time.Hour)
-	invalidCache = cache.New(refreshExp, time.Hour)
+	revokedCache = cache.New(refreshExp, time.Hour)
 }
 
 // New refresh claim.
 // Issue at = Now()
 func NewRefreshClaims(u *model.User) (rc *RefreshClaims) {
 	rc = &RefreshClaims{User: *u, TokenID: *NewTokenID()}
-	rc.IssuedAt = &jwt.NumericDate{Time: time.Now().Add(refreshExp)}
+	rc.IssuedAt = &jwt.NumericDate{Time: now().Add(refreshExp)}
 	return rc.UpdateTime()
 }
 
@@ -58,7 +58,7 @@ func NewRefreshClaimsFromContext(c *gin.Context) (*RefreshClaims, error) {
 
 // Update iat,exp,nbf from current time
 func (rc *RefreshClaims) UpdateTime() *RefreshClaims {
-	now := time.Now()
+	now := now()
 	rc.ExpiresAt = &jwt.NumericDate{Time: now.Add(refreshExp)}
 	rc.NotBefore = &jwt.NumericDate{Time: now.Add(refreshNBF)}
 	return rc
@@ -66,9 +66,18 @@ func (rc *RefreshClaims) UpdateTime() *RefreshClaims {
 
 // Generate new token
 func (rc *RefreshClaims) Rotate() (refreshTokenString string, accessTokenString string, err error) {
+	now := now()
 
-	// check invalid counter
-	_, found := invalidCache.Get(rc.TokenID.NUID)
+	// check expire
+	if !now.Before(rc.ExpiresAt.Time) {
+		return "", "", fmt.Errorf("token expired: %s", rc.ExpiresAt.Time.String())
+	}
+	// check not before
+	if now.Before(rc.NotBefore.Time) {
+		return "", "", fmt.Errorf("token not before: %s", rc.NotBefore.Time.String())
+	}
+	// check revoked counter
+	_, found := revokedCache.Get(rc.TokenID.NUID)
 	if found {
 		return "", "", fmt.Errorf("invalid token counter: %s", rc.TokenID.String())
 	}
@@ -76,8 +85,8 @@ func (rc *RefreshClaims) Rotate() (refreshTokenString string, accessTokenString 
 	// check counter
 	r, found := counterCache.Get(rc.TokenID.NUID)
 	if found && r.(int) > rc.TokenID.Counter {
-		// add to invalid cache
-		invalidCache.Set(rc.TokenID.NUID, rc.TokenID.Counter, cache.DefaultExpiration)
+		//revok this rc
+		rc.Revoke()
 		return "", "", fmt.Errorf("invalid token counter: %s", rc.TokenID.String())
 	}
 
@@ -94,7 +103,6 @@ func (rc *RefreshClaims) Rotate() (refreshTokenString string, accessTokenString 
 	}
 
 	ac := NewAccessClaims(&rc.User)
-	now := time.Now()
 	ac.IssuedAt = &jwt.NumericDate{Time: now}
 	ac.ExpiresAt = &jwt.NumericDate{Time: now.Add(accessExp)}
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, ac)
@@ -103,4 +111,9 @@ func (rc *RefreshClaims) Rotate() (refreshTokenString string, accessTokenString 
 		return
 	}
 	return
+}
+
+func (rc *RefreshClaims) Revoke() {
+	// add to revoked cache
+	revokedCache.Set(rc.TokenID.NUID, rc.TokenID.Counter, cache.DefaultExpiration)
 }

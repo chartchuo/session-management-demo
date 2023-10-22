@@ -20,7 +20,7 @@ func TestID(t *testing.T) {
 	}
 
 }
-func TestRotate(t *testing.T) {
+func TestIDRotate(t *testing.T) {
 	t1 := NewTokenID()
 	id := t1.NUID
 	counter := t1.Counter
